@@ -32,7 +32,7 @@ void showBoard(char b[8][8]){
 void main(){
     char turn=0;
     char board[8][8];
-    resetBoard(board);
+    Board(board);
   //  while(1){
         char *a=turn==0?"White":"Black";
         printf("%s's Turn\n",a);
