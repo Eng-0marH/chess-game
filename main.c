@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <ctype.h>
-void resetBoard(char b[8][8]){
+void Board(char b[8][8]){
     char firstrow[8]={'R','N','B','Q','K','B','N','R'};
     for(int i=0;i<8;i++){
         b[0][i]=firstrow[i];
@@ -28,6 +28,16 @@ void showBoard(char b[8][8]){
         k=k+i;
         printf("%c ",k);
     }
+}
+void move(char B[8][8], int row1, int column1, int row2, int column2)
+{
+    char temp;
+
+    temp = B[row1][column1];
+
+    B[row2][column2] = temp;  /*  If B[row2][column2] allready a  piece will capure
+                                  later add logic to save the captured piece to a list  */
+    B[row1][column1] = (row1 + column1) % 2 == 0 ? '-' : '.'; 
 }
 void main(){
     char turn=0;
