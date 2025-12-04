@@ -42,7 +42,7 @@ void move(char B[8][8], int row1, int column1, int row2, int column2)
 void main(){
     char turn=0;
     char board[8][8];
-    resetBoard(board);
+    Board(board);
   //  while(1){
         char *a=turn==0?"White":"Black";
         printf("%s's Turn\n",a);
