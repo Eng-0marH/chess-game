@@ -40,6 +40,36 @@ void move(char B[8][8], int row1, int column1, int row2, int column2)
                                   later add logic to save the captured piece to a list  */
     B[row1][column1] = (row1 + column1) % 2 == 0 ? '-' : '.'; 
 }
+int Bishop(char B[8][8], int row1, int column1, int row2, int column2)
+{
+    if (abs(row2 - row1) != abs(column2 - column1))
+        return 0;
+
+    int row_direction = (row2 > row1) ? 1 : -1;
+    int column_direction = (column2 > column1) ? 1 : -1;
+
+    int r = row1 + row_direction;
+    int c = column1 + column_direction;
+
+    
+    while (r != row2 && c != column2)
+    {
+        if (B[r][c] != '-' && B[r][c] != '.')
+            return 0;   
+        r += row_direction;
+        c += column_direction;
+    }
+
+    char start = B[row1][column1];
+    char end   = B[row2][column2];
+
+
+    if (isupper(start) && isupper(end)) return 0;
+    if (islower(start) && islower(end)) return 0;
+
+    return 1;  
+}
+
 void readmove(int *r1,int *c1,int *r2,int *c2,char *prom){
     char from[3],to[4];
     int ch;
