@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <ctype.h>
+
 void Board(char b[8][8]){
     char firstrow[8]={'R','N','B','Q','K','B','N','R'};
     for(int i=0;i<8;i++){
@@ -14,6 +15,7 @@ void Board(char b[8][8]){
         }
     }
 }
+
 void showBoard(char b[8][8]){
     for(int i=0;i<8;i++){
         printf("%d| ",8-i);
@@ -30,6 +32,7 @@ void showBoard(char b[8][8]){
     }
     printf("\n");
 }
+
 void move(char B[8][8], int row1, int column1, int row2, int column2)
 {
     char temp;
@@ -40,6 +43,7 @@ void move(char B[8][8], int row1, int column1, int row2, int column2)
                                   later add logic to save the captured piece to a list  */
     B[row1][column1] = (row1 + column1) % 2 == 0 ? '-' : '.'; 
 }
+
 int Bishop(char B[8][8], int row1, int column1, int row2, int column2)
 {
     if (abs(row2 - row1) != abs(column2 - column1))
