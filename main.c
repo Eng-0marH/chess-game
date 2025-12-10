@@ -102,6 +102,17 @@ int Rook(char B[8][8], int row1, int column1, int row2, int column2){
     return 1;  
     
 }
+int Queen(char B[8][8], int row1, int column1, int row2, int column2)  // Rook and Bishop move are available 
+{
+    if (Rook(B, row1, column1, row2, column2)) 
+        return 1;
+
+    if (Bishop(B, row1, column1, row2, column2)) 
+        return 1;
+
+    return 0;
+}
+
 int Knight(char B[8][8], int row1, int column1, int row2, int column2){
     int r = abs(row2 - row1);
     int c = abs(column2 - column1);
