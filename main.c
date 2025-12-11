@@ -1,7 +1,12 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
-
+void captured(char c[16]){
+    for(int i=0;i<16;i++){
+        if(c[i]==0) break;
+        printf(" %c",c[i]);
+    }
+}
 void Board(char b[8][8]){
     char firstrow[8]={'R','N','B','Q','K','B','N','R'};
     for(int i=0;i<8;i++){
@@ -34,14 +39,20 @@ void showBoard(char b[8][8]){
     printf("\n");
 }
 
-void move(char B[8][8], int row1, int column1, int row2, int column2)
+void move(char B[8][8], int row1, int column1, int row2, int column2,char w[16], char b[16],\
+    int *cW,int *cB)
 {
-    char temp;
-
-    temp = B[row1][column1];
-
-    B[row2][column2] = temp;  /*  If B[row2][column2] allready a  piece will capure
-                                  later add logic to save the captured piece to a list  */
+    if(B[row2][column2]!='.' && B[row2][column2]!='-'){
+        if(islower(B[row2][column2])){
+            w[*cW]=B[row2][column2];
+            (*cW)++;
+        }
+        else{
+            b[*cB]=B[row2][column2];
+            (*cB)++;
+        }
+    }
+    B[row2][column2] = B[row1][column1];
     B[row1][column1] = (row1 + column1) % 2 == 0 ? '-' : '.'; 
 }
 
@@ -74,23 +85,62 @@ int Bishop(char B[8][8], int row1, int column1, int row2, int column2)
 
     return 1;  
 }
+int Pawn(char B[8][8], int row1, int column1, int row2, int column2){
+    if(islower(B[row1][column1])){
+        if(row1==6){
+            if(column1==column2 && row2==row1-2 &&\
+            (B[row2][column2]=='.' || B[row2][column2]=='-')&&\
+            (B[row2+1][column2]=='.' || B[row2+1][column2]=='-')) return 1;
+            if(column1==column2 && row2==row1-1 &&\
+            (B[row2][column2]=='.' || B[row2][column2]=='-')) return 1;
+        }
+        else{
+            if(column1==column2 && row2==row1-1 &&\
+            (B[row2][column2]=='.' || B[row2][column2]=='-')) return 1;
+        }
+        if(abs(column1-column2)==1){
+            if(row2==row1-1 && isupper(B[row2][column2])) return 1;
+        }
+    }
+    else{
+        if(row1==1){
+            if(column1==column2 && row2==row1+2 &&\
+            (B[row2][column2]=='.' || B[row2][column2]=='-')&&\
+            (B[row2-1][column2]=='.' || B[row2-1][column2]=='-')) return 1;
+            if(column1==column2 && row2==row1+1 &&\
+            (B[row2][column2]=='.' || B[row2][column2]=='-')) return 1;
+        }
+        else{
+            if(column1==column2 && row2==row1+1 &&\
+            (B[row2][column2]=='.' || B[row2][column2]=='-')) return 1;
+        }
+        if(abs(column1-column2)==1){
+            if(row2==row1+1 && islower(B[row2][column2])) return 1;
+        }
+    }
+    return 0;
+}
 int Rook(char B[8][8], int row1, int column1, int row2, int column2){
     if (row1 != row2 && column1!=column2)
         return 0;
-    int row_direction = (row2 > row1) ? 1 : -1;
-    int column_direction = (column2 > column1) ? 1 : -1;
-    if (row1==row2) row_direction=0;
-    else column_direction=0;
+        int rdi,cdi;
+    if(row1==row2){
+        rdi = 0;
+        cdi = (column2 > column1) ? 1 : -1;
+    }
+    else{
+        cdi=0;
+        rdi= (row2 > row1) ? 1 : -1;
+    }
+    int r = row1 + rdi;
+    int c = column1 + cdi;
 
-    int r = row1 + row_direction;
-    int c = column1 + column_direction;
-
-    while (r != row2 && c != column2)
+    while ((r != row2  && rdi!=0) || (c != column2 && cdi!= 0))
     {
         if (B[r][c] != '-' && B[r][c] != '.')
             return 0;   
-        r += row_direction;
-        c += column_direction;
+        r += rdi;
+        c += cdi;
     }
     char start = B[row1][column1];
     char end   = B[row2][column2];
@@ -149,8 +199,8 @@ void readmove(int *r1,int *c1,int *r2,int *c2,char *prom){
 }
 
 int isValid(char b[8][8],int r1,int c1,int r2,int c2,char prom,char turn){
-    if(isupper(b[r1][c1]) && turn==1) return 0;  // turn 0 for white
-    if(islower(b[r1][c1]) && turn==0) return 0;  // turn 1 for black
+    if(isupper(b[r1][c1]) && turn==0) return 0;  // turn 0 for white
+    if(islower(b[r1][c1]) && turn==1) return 0;  // turn 1 for black
     if(prom!='\0'&& toupper(b[r1][c1])=='P') return Promotion(b,r1,c1,r2,c2);
     else{
         switch (toupper(b[r1][c1])){
@@ -180,18 +230,32 @@ int main(){
     char prom;
     char turn=0;
     char board[8][8];
+    char captureW[16]={};
+    char captureB[16]={};
+    int counterW=0;
+    int counterB=0;
     Board(board);
-    //while(1){
+    while(1){
         char *a=turn==0?"White":"Black";
+        printf("\n--------------------\nCaptured White:");
+        captured(captureW);
+        printf("\n");
         showBoard(board);
+        printf("Captured Black:");
+        captured(captureB);
+        printf("\n--------------------");
+        printf("\n");
         printf("%s's Turn\n",a);
-        /*while(1){
+        while(1){
             readmove(&row1,&col1,&row2,&col2,&prom);
             if(isValid(board,row1,col1,row2,col2,prom,turn)) break;
-            else printf("Invalid move, Try again!\n");
+            else {
+                printf("Invalid move, Try again!\n");
+                continue;
+            }
         }
-        move(board,row1,col1,row2,col2);
-        turn=1-turn;*/
-    //}
+        move(board,row1,col1,row2,col2,captureW,captureB,&counterW,&counterB);
+        turn=1-turn;
+    }
     return 0;
 }
