@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
 void captured(char c[16]){
     for(int i=0;i<16;i++){
         if(c[i]==0) break;
@@ -88,14 +89,14 @@ int Bishop(char B[8][8], int row1, int column1, int row2, int column2)
 int Pawn(char B[8][8], int row1, int column1, int row2, int column2){
     if(islower(B[row1][column1])){
         if(row1==6){
-            if(column1==column2 && row2==row1-2 &&\
-            (B[row2][column2]=='.' || B[row2][column2]=='-')&&\
+            if(column1==column2 && row2==row1-2 &&
+            (B[row2][column2]=='.' || B[row2][column2]=='-')&&
             (B[row2+1][column2]=='.' || B[row2+1][column2]=='-')) return 1;
-            if(column1==column2 && row2==row1-1 &&\
+            if(column1==column2 && row2==row1-1 &&
             (B[row2][column2]=='.' || B[row2][column2]=='-')) return 1;
         }
         else{
-            if(column1==column2 && row2==row1-1 &&\
+            if(column1==column2 && row2==row1-1 &&
             (B[row2][column2]=='.' || B[row2][column2]=='-')) return 1;
         }
         if(abs(column1-column2)==1){
@@ -104,14 +105,14 @@ int Pawn(char B[8][8], int row1, int column1, int row2, int column2){
     }
     else{
         if(row1==1){
-            if(column1==column2 && row2==row1+2 &&\
-            (B[row2][column2]=='.' || B[row2][column2]=='-')&&\
+            if(column1==column2 && row2==row1+2 &&
+            (B[row2][column2]=='.' || B[row2][column2]=='-')&&
             (B[row2-1][column2]=='.' || B[row2-1][column2]=='-')) return 1;
-            if(column1==column2 && row2==row1+1 &&\
+            if(column1==column2 && row2==row1+1 &&
             (B[row2][column2]=='.' || B[row2][column2]=='-')) return 1;
         }
         else{
-            if(column1==column2 && row2==row1+1 &&\
+            if(column1==column2 && row2==row1+1 &&
             (B[row2][column2]=='.' || B[row2][column2]=='-')) return 1;
         }
         if(abs(column1-column2)==1){
@@ -179,23 +180,34 @@ int Knight(char B[8][8], int row1, int column1, int row2, int column2){
     
 }
 void readmove(int *r1,int *c1,int *r2,int *c2,char *prom){
-    char from[3],to[4];
-    int ch;
     while(1){
-        scanf("%2s %3s",from,to);
-        while ((ch = getchar()) != '\n' && ch != EOF);  // clean buffer
-        *r1='8'-from[1];
-        *c1=toupper(from[0])-'A';
-        *r2='8'-to[1];
-        *c2=toupper(to[0])-'A';
-        *prom=(to[2]=='\0')?'\0':toupper(to[2]);
-        if(*r1 >=0 && *r1 <8 && *r2 >=0 && *r2 <8 && *c1 >=0 && *c1 <8 && *c2 >=0 && *c2 <8\
-        && (*prom=='\0' ||*prom=='B' ||*prom=='N' ||*prom=='Q' ||*prom=='R')){
-            break;
+        char line[100];
+        fgets(line,100,stdin);
+        line[strcspn(line,"\n")]='\0';
+        int len=strlen(line);
+        if(!(len==4 || len==5)){
+            printf("Invalid Input format, e.g. \"E2E4\"\n");
+            continue;
         }
-        else
-        printf("Invalid move, try again!\n");
-}
+        if(!(toupper (line[0]) >='A' && toupper (line[0]) <='H' &&
+            line[1] >= '1' && line[1] <= '8' &&
+            toupper (line[2]) >='A' && toupper (line[2]) <='H' &&
+            line[3] >= '1' && line[3] <= '8' &&
+            ((line[4]=='\0') || (toupper(line[4])=='B') ||
+            (toupper(line[4])=='Q') || (toupper(line[4])=='R') ||
+            (toupper(line[4])=='N'))
+            ))
+            {
+                printf("Invalid Input format, e.g. \"E2E4\"\n");
+                continue;
+            }
+        *r1='8'-line[1];
+        *c1=toupper(line[0])-'A';
+        *r2='8'-line[3];
+        *c2=toupper(line[2])-'A';
+        *prom=(len==5)?toupper(line[4]):'\0';
+        break;
+    }
 }
 
 int isValid(char b[8][8],int r1,int c1,int r2,int c2,char prom,char turn){
