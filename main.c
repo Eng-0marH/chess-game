@@ -104,7 +104,7 @@ int Pawn(char B[8][8], int row1, int column1, int row2, int column2){
     return 0;
 }
 int Promotion(char b[8][8],int r1,int c1,int r2,int c2,char turn){
-    if(toupper(b[r1][c2])!='P') return 0;
+    if(toupper(b[r1][c1])!='P') return 0;
     if(turn==0){
         if (r1==1 && r2==0)
         return Pawn(b,r1,c1,r2,c2);
@@ -272,6 +272,93 @@ int isValid(char b[8][8],int r1,int c1,int r2,int c2,char prom,char turn,int *va
     
     return 0;
 }
+
+void findKing(char B[8][8], char king, int *kr, int *kc)
+{
+    for (int r = 0; r < 8; r++) {
+        for (int c = 0; c < 8; c++) {
+            if (B[r][c] == king) {
+                *kr = r;
+                *kc = c;
+                return;
+            }
+        }
+    }
+}
+
+int squareUnderAttack(char B[8][8], int r, int c, char turn)
+{
+    for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < 8; j++) {
+
+            if (B[i][j] == '.' || B[i][j] == '-') continue;
+
+            if (turn == 0 && isupper(B[i][j])) continue;
+            if (turn == 1 && islower(B[i][j])) continue;
+
+            int validprom = 0;
+            if (isValid(B, i, j, r, c, '0', 1 - turn, &validprom))
+                return 1;
+        }
+    }
+    return 0;
+}
+
+int isCheck(char B[8][8], char turn)
+{
+    int kr, kc;
+
+    if (turn == 0)
+        findKing(B, 'K', &kr, &kc);
+    else
+        findKing(B, 'k', &kr, &kc);
+
+    return squareUnderAttack(B, kr, kc, turn);
+}
+
+void copyBoard(char src[8][8], char dst[8][8])
+{
+    for (int i = 0; i < 8; i++)
+        for (int j = 0; j < 8; j++)
+            dst[i][j] = src[i][j];
+}
+
+
+int isCheckMate(char B[8][8], char turn)
+{
+    if (!isCheck(B, turn)) return 0;
+
+    char temp[8][8];
+
+    for (int r1 = 0; r1 < 8; r1++) {
+        for (int c1 = 0; c1 < 8; c1++) {
+
+            if (B[r1][c1] == '.' || B[r1][c1] == '-') continue;
+
+            if (turn == 0 && !isupper(B[r1][c1])) continue;
+            if (turn == 1 && !islower(B[r1][c1])) continue;
+
+            for (int r2 = 0; r2 < 8; r2++) {
+                for (int c2 = 0; c2 < 8; c2++) {
+
+                    int validprom = 0;
+                    if (!isValid(B, r1, c1, r2, c2, '0', turn, &validprom))
+                        continue;
+
+                    copyBoard(B, temp);
+
+                    temp[r2][c2] = temp[r1][c1];
+                    temp[r1][c1] = ((r1 + c1) % 2 == 0) ? '-' : '.';
+
+                    if (!isCheck(temp, turn))
+                        return 0;  
+                }
+            }
+        }
+    }
+    return 1; 
+}
+
 
 int main(){
     int row1,col1,row2,col2;
