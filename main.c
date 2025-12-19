@@ -23,7 +23,10 @@ void Board(char b[8][8]){
     }
 }
 
-void showBoard(char b[8][8]){
+void showBoard(char b[8][8],char captureW[],char captureB[]){
+    printf("\n--------------------\nCaptured White:");
+    captured(captureW);
+    printf("\n");
     for(int i=0;i<8;i++){
         printf("%d| ",8-i);
         for(int j=0;j<8;j++){
@@ -37,6 +40,10 @@ void showBoard(char b[8][8]){
         k=k+i;
         printf("%c ",k);
     }
+    printf("\n");
+    printf("Captured Black:");
+    captured(captureB);
+    printf("\n--------------------");
     printf("\n");
 }
 int Bishop(char B[8][8], int row1, int column1, int row2, int column2)
@@ -288,16 +295,28 @@ void findKing(char B[8][8], char king, int *kr, int *kc)
 
 int squareUnderAttack(char B[8][8], int r, int c, char turn)
 {
+    char attacker = 1 - turn;
     for (int i = 0; i < 8; i++) {
         for (int j = 0; j < 8; j++) {
 
             if (B[i][j] == '.' || B[i][j] == '-') continue;
 
-            if (turn == 0 && isupper(B[i][j])) continue;
-            if (turn == 1 && islower(B[i][j])) continue;
+            if (attacker == 0 && isupper(B[i][j])) continue;
+            if (attacker == 1 && islower(B[i][j])) continue;
 
             int validprom = 0;
-            if (isValid(B, i, j, r, c, '0', 1 - turn, &validprom))
+
+            if (tolower(B[i][j]) == 'p') {
+            if (islower(B[i][j])) {
+            if (r == i - 1 && (c == j - 1 || c == j + 1))
+                return 1;
+            } else {
+            if (r == i + 1 && (c == j - 1 || c == j + 1))
+                return 1;
+            }
+                continue;
+            }
+            if (isValid(B, i, j, r, c, '0', attacker, &validprom))
                 return 1;
         }
     }
@@ -309,9 +328,9 @@ int isCheck(char B[8][8], char turn)
     int kr, kc;
 
     if (turn == 0)
-        findKing(B, 'K', &kr, &kc);
-    else
         findKing(B, 'k', &kr, &kc);
+    else
+        findKing(B, 'K', &kr, &kc);
 
     return squareUnderAttack(B, kr, kc, turn);
 }
@@ -335,14 +354,19 @@ int isCheckMate(char B[8][8], char turn)
 
             if (B[r1][c1] == '.' || B[r1][c1] == '-') continue;
 
-            if (turn == 0 && !isupper(B[r1][c1])) continue;
-            if (turn == 1 && !islower(B[r1][c1])) continue;
+            if (turn == 0 && isupper(B[r1][c1])) continue;
+            if (turn == 1 && islower(B[r1][c1])) continue;
 
             for (int r2 = 0; r2 < 8; r2++) {
                 for (int c2 = 0; c2 < 8; c2++) {
 
+                   
                     int validprom = 0;
-                    if (!isValid(B, r1, c1, r2, c2, '0', turn, &validprom))
+                    char promotion ='0';
+                    if(tolower(B[r1][c1])=='p' && (r2==0||r2==7)){
+                        promotion ='Q';
+                    }
+                    if (!isValid(B, r1, c1, r2, c2, promotion, turn, &validprom))
                         continue;
 
                     copyBoard(B, temp);
@@ -359,40 +383,99 @@ int isCheckMate(char B[8][8], char turn)
     return 1; 
 }
 
+int isStaleMate(char B[8][8],char turn){
+    if (isCheck(B, turn)) return 0;
+    char temp[8][8];
+    int validprom=0;
+    for (int r1 = 0; r1 < 8; r1++) {
+        for (int c1 = 0; c1 < 8; c1++) {
+
+            if (B[r1][c1] == '.' || B[r1][c1] == '-') continue;
+            if (turn == 0 && isupper(B[r1][c1])) continue;
+            if (turn == 1 && islower(B[r1][c1])) continue;
+
+            for (int r2 = 0; r2 < 8; r2++) {
+                for (int c2 = 0; c2 < 8; c2++) {
+                    char prom = '0';
+                    if (tolower(B[r1][c1])=='p' && (r2==0||r2==7))
+                        prom = 'Q';
+
+                    if (!isValid(B, r1, c1, r2, c2, prom, turn, &validprom))
+                        continue;
+
+                    copyBoard(B, temp);
+
+                    
+                    temp[r2][c2] = temp[r1][c1];
+
+                    temp[r1][c1] = '.';
+
+                    if (!isCheck(temp, turn))
+                        return 0;
+                }
+            }
+        }
+    }
+
+    return 1;
+}
 
 int main(){
-    int row1,col1,row2,col2;
-    char turn=0;
-    char prom;
-    char board[8][8];
-    char captureW[16]={};
-    char captureB[16]={};
-    int counterW=0;
-    int counterB=0;
+
+    int row1,col1,row2,col2,counterB=0,counterW=0,validprom,checkflag=0,checkmateflag=0,stalemateflag=0;
+    char turn=0,prom,board[8][8],captureW[16]={},captureB[16]={};
+
     Board(board);
+
     while(1){
-        char *a=turn==0?"White":"Black";
-        printf("\n--------------------\nCaptured White:");
-        captured(captureW);
-        printf("\n");
-        showBoard(board);
-        printf("Captured Black:");
-        captured(captureB);
-        printf("\n--------------------");
-        printf("\n");
-        printf("%s's Turn\n",a);
-        int validprom=0;
+
+        showBoard(board,captureW,captureB);
+        if (checkmateflag==1){
+                printf("------GAME OVER------\nCheckmate! %s Wins",1-turn==0?"White":"Black");
+                break;
+            }
+        if(stalemateflag==1){
+                printf("------GAME OVER------\nStalemate! Draw");
+        }
+        printf("%s's Turn\n",turn==0?"White":"Black");
+        if(checkflag==1){
+            printf("Check!\n");
+            checkflag=0;
+        }
+
         while(1){
             validprom=0;
             readmove(&row1,&col1,&row2,&col2,&prom);
-            if(isValid(board,row1,col1,row2,col2,prom,turn,&validprom)) break;
-            else {
+
+            if (!isValid(board,row1,col1,row2,col2,prom,turn,&validprom)) {
                 printf("Invalid move, Try again!\n");
                 continue;
             }
+
+            char temp[8][8];
+            copyBoard(board, temp);
+            temp[row2][col2] = temp[row1][col1];
+            temp[row1][col1] = ((row1 + col1) % 2 == 0) ? '-' : '.';
+
+            if (isCheck(temp, turn)) {
+                printf("Illegal move: King in check!\n");
+                continue;
+            }
+
+            break;
         }
-        move(board,row1,col1,row2,col2,captureW,captureB,&counterW,&counterB,prom,turn,validprom);
-        turn=1-turn;
+
+        move(board,row1,col1,row2,col2,
+             captureW,captureB,&counterW,&counterB,
+             prom,turn,validprom);
+
+        turn = 1-turn;
+        if (isCheck(board, turn)) {
+            checkflag=1;
+        }
+        checkmateflag = isCheckMate(board, turn);
+        stalemateflag = isStaleMate(board,turn);
     }
+    
     return 0;
 }
