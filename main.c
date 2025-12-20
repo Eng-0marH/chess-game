@@ -408,7 +408,7 @@ int isStaleMate(char B[8][8],char turn){
                     
                     temp[r2][c2] = temp[r1][c1];
 
-                    temp[r1][c1] = '.';
+                    temp[r1][c1] = ((r1 + c1) % 2 == 0) ? '-' : '.';
 
                     if (!isCheck(temp, turn))
                         return 0;
