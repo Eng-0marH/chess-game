@@ -2,12 +2,29 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
+
+typedef struct {
+    char board[8][8];
+    char captureW[16];
+    char captureB[16];
+    int counterW;
+    int counterB;
+    char turn;
+} GameState;
+
+
+#define MAX_HISTORY 100
+GameState history[MAX_HISTORY];
+int historyCount = 0;
+
+
 void captured(char c[16]){
     for(int i=0;i<16;i++){
         if(c[i]==0) break;
         printf(" %c",c[i]);
     }
 }
+
 void Board(char b[8][8]){
     char firstrow[8]={'R','N','B','Q','K','B','N','R'};
     for(int i=0;i<8;i++){
@@ -176,7 +193,7 @@ int Rook(char B[8][8], int row1, int column1, int row2, int column2){
     return 1;  
     
 }
-int Queen(char B[8][8], int row1, int column1, int row2, int column2)  // Rook and Bishop move are available 
+int Queen(char B[8][8], int row1, int column1, int row2, int column2)   
 {
     if (Rook(B, row1, column1, row2, column2)) 
         return 1;
@@ -216,14 +233,23 @@ int King(char B[8][8], int row1, int column1, int row2, int column2){
     return 1;
 
 }
-void readmove(int *r1,int *c1,int *r2,int *c2,char *prom){
+
+void readmove(int *r1,int *c1,int *r2,int *c2,char *prom, int *undoFlag){
     while(1){
         char line[100];
         fgets(line,100,stdin);
         line[strcspn(line,"\n")]='\0';
+        
+        // Check for ( u , U ) undo command
+        if(strcmp(line, "u") == 0 || strcmp(line, "U") == 0){
+            *undoFlag = 1;
+            return;
+        }
+        
+        *undoFlag = 0;
         int len=strlen(line);
         if(!(len==4 || len==5)){
-            printf("Invalid Input format, e.g. \"E2E4\"\n");
+            printf("Invalid Input format, e.g. \"E2E4\" or type \"u\" to undo last move\n");
             continue;
         }
         if(!(toupper (line[0]) >='A' && toupper (line[0]) <='H' &&
@@ -235,7 +261,7 @@ void readmove(int *r1,int *c1,int *r2,int *c2,char *prom){
             (toupper(line[4])=='N'))
             ))
             {
-                printf("Invalid Input format, e.g. \"E2E4\"\n");
+                printf("Invalid Input format, e.g. \"E2E4\" or type \"u\" to undo last move\n");
                 continue;
             }
         *r1='8'-line[1];
@@ -342,6 +368,41 @@ void copyBoard(char src[8][8], char dst[8][8])
             dst[i][j] = src[i][j];
 }
 
+void saveState(char board[8][8], char captureW[16], char captureB[16], 
+               int counterW, int counterB, char turn) {
+    if (historyCount >= MAX_HISTORY) {
+        printf("History full! Cannot save more states.\n");
+        return;
+    }
+    
+    copyBoard (board, history[historyCount].board);
+    memcpy(history[historyCount].captureW, captureW, 16);
+    memcpy(history[historyCount].captureB, captureB, 16);
+    history[historyCount].counterW = counterW;
+    history[historyCount].counterB = counterB;
+    history[historyCount].turn = turn;
+    historyCount++;
+}
+
+
+int UNDO (char board[8][8], char captureW[16], char captureB[16], 
+                 int *counterW, int *counterB, char *turn) {
+    if (historyCount == 0) {
+        printf("No moves to undo!\n");
+        return 0;
+    }
+    
+    historyCount--;
+    copyBoard(history[historyCount].board, board);
+    memcpy(captureW, history[historyCount].captureW, 16);
+    memcpy(captureB, history[historyCount].captureB, 16);
+    *counterW = history[historyCount].counterW;
+    *counterB = history[historyCount].counterB;
+    *turn = history[historyCount].turn;
+    
+    return 1;
+}
+
 
 int isCheckMate(char B[8][8], char turn)
 {
@@ -422,10 +483,13 @@ int isStaleMate(char B[8][8],char turn){
 
 int main(){
 
-    int row1,col1,row2,col2,counterB=0,counterW=0,validprom,checkflag=0,checkmateflag=0,stalemateflag=0;
+    int row1,col1,row2,col2,counterB=0,counterW=0,validprom,checkflag=0,checkmateflag=0,stalemateflag=0,undoFlag=0;
     char turn=0,prom,board[8][8],captureW[16]={},captureB[16]={};
 
     Board(board);
+
+    
+    saveState(board, captureW, captureB, counterW, counterB, turn);
 
     while(1){
 
@@ -446,7 +510,17 @@ int main(){
 
         while(1){
             validprom=0;
-            readmove(&row1,&col1,&row2,&col2,&prom);
+            readmove(&row1,&col1,&row2,&col2,&prom,&undoFlag);
+            
+            if(undoFlag){
+                if(UNDO(board, captureW, captureB, &counterW, &counterB, &turn)){
+                    printf("Move undone!\n");
+                    checkflag = 0;
+                    checkmateflag = 0;
+                    stalemateflag = 0;
+                }
+                break;
+            }
 
             if (!isValid(board,row1,col1,row2,col2,prom,turn,&validprom)) {
                 printf("Invalid move, Try again!\n");
@@ -466,11 +540,19 @@ int main(){
             break;
         }
 
+        if (undoFlag)
+        {
+            continue;
+        }
+        
         move(board,row1,col1,row2,col2,
              captureW,captureB,&counterW,&counterB,
              prom,turn,validprom);
-
+             
         turn = 1-turn;
+
+        saveState(board, captureW, captureB, counterW, counterB, turn);
+
         if (isCheck(board, turn)) {
             checkflag=1;
         }
