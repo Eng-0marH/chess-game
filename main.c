@@ -436,6 +436,7 @@ int main(){
             }
         if(stalemateflag==1){
                 printf("------GAME OVER------\nStalemate! Draw");
+                break;
         }
         printf("%s's Turn\n",turn==0?"White":"Black");
         if(checkflag==1){
