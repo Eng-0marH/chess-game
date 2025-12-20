@@ -15,7 +15,7 @@ typedef struct {
 
 #define MAX_HISTORY 100
 GameState history[MAX_HISTORY];
-int historyCount = 0;
+int historyCount = -1;
 
 
 void captured(char c[16]){
@@ -374,14 +374,13 @@ void saveState(char board[8][8], char captureW[16], char captureB[16],
         printf("History full! Cannot save more states.\n");
         return;
     }
-    
+    historyCount++;
     copyBoard (board, history[historyCount].board);
     memcpy(history[historyCount].captureW, captureW, 16);
     memcpy(history[historyCount].captureB, captureB, 16);
     history[historyCount].counterW = counterW;
     history[historyCount].counterB = counterB;
     history[historyCount].turn = turn;
-    historyCount++;
 }
 
 
