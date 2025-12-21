@@ -10,14 +10,30 @@ typedef struct {
     int counterW;
     int counterB;
     char turn;
+
+    int whitekingmoved;
+    int whiteleftrook;
+    int whiterightrook;
+    int blackkingmoved;
+    int blackleftrook;
+    int blackrightrook;
+
 } GameState;
 
 
-#define MAX_HISTORY 150
+#define MAX_HISTORY 200
 GameState history[MAX_HISTORY];
 int historyCount = 0;
 int currentState = 0;
 
+int whitekingmoved=0;
+int whiteleftrook=0;
+int whiterightrook=0;
+int blackkingmoved=0;
+int blackleftrook=0;
+int blackrightrook=0;
+int castlew=0;
+int castleb=0;
 
 void captured(char c[16]){
     for(int i=0;i<16;i++){
@@ -143,6 +159,32 @@ int Promotion(char b[8][8],int r1,int c1,int r2,int c2,char turn){
 void move(char B[8][8], int row1, int column1, int row2, int column2,char w[16], char b[16],
     int *cW,int *cB,char prom,char turn,int validprom)
 {
+    if((row1==0 && column1==0) || (row2==0 && column2==0)) blackleftrook=1;
+    if((row1==0 && column1==7) || (row2==0 && column2==7)) blackrightrook=1;
+    if((row1==7 && column1==0) || (row2==7 && column2==0)) whiteleftrook=1;
+    if((row1==7 && column1==7) || (row2==7 && column2==7)) whiterightrook=1;
+    if(row1==7 && column1==4) whitekingmoved=1;
+    if(row1==0 && column1==4) blackkingmoved=1;
+    if(castlew){
+        if(column2>column1){
+            B[7][7]='-';
+            B[7][5]='r';}
+        else{
+            B[7][0]='.';
+            B[7][3]='r';
+        }
+        castlew=0;
+    }
+    if(castleb){
+        if(column2>column1){
+            B[0][7]='.';
+            B[0][5]='R';}
+        else{
+            B[0][0]='-';
+            B[0][3]='R';
+        }
+        castleb=0;
+    }
     if(B[row2][column2]!='.' && B[row2][column2]!='-'){
         if(islower(B[row2][column2])){
             w[*cW]=B[row2][column2];
@@ -275,12 +317,17 @@ void readmove(int *r1,int *c1,int *r2,int *c2,char *prom, int *undoFlag){
         break;
     }
 }
+int whitecastle(char b[8][8],int r1,int c1,int r2,int c2);
+int blackcastle(char b[8][8],int r1,int c1,int r2,int c2);
 
 int isValid(char b[8][8],int r1,int c1,int r2,int c2,char prom,char turn,int *validprom){
     if(isupper(b[r1][c1]) && turn==0) return 0;  // turn 0 for white
     if(islower(b[r1][c1]) && turn==1) return 0;  // turn 1 for black
     if(prom!='0' && toupper(b[r1][c1])!='P') return 0;
     if( prom!='0') *validprom =1;
+    if(r1==7 && c1==4 && b[7][4]=='k' && abs(c1-c2)==2) return whitecastle(b,r1,c1,r2,c2);
+    if(r1==0 && c1==4 && b[0][4]=='K' && abs(c1-c2)==2) return blackcastle(b,r1,c1,r2,c2);
+
         switch (toupper(b[r1][c1])){
         case '.':
            return 0;
@@ -385,6 +432,12 @@ void saveState(char board[8][8], char captureW[16], char captureB[16],
     history[historyCount].counterW = counterW;
     history[historyCount].counterB = counterB;
     history[historyCount].turn = turn;
+    history[historyCount].whitekingmoved = whitekingmoved;
+    history[historyCount].whiterightrook = whiterightrook;
+    history[historyCount].whiteleftrook = whiteleftrook;
+    history[historyCount].blackkingmoved = blackkingmoved;
+    history[historyCount].blackrightrook = blackrightrook;
+    history[historyCount].blackleftrook = blackleftrook;
     historyCount++;
     currentState++;
 }
@@ -404,6 +457,12 @@ int UNDO (char board[8][8], char captureW[16], char captureB[16],
     *counterW = history[currentState-1].counterW;
     *counterB = history[currentState-1].counterB;
     *turn = history[currentState-1].turn;
+    whitekingmoved = history[currentState-1].whitekingmoved;
+    whiterightrook = history[currentState-1].whiterightrook;
+    whiteleftrook = history[currentState-1].whiteleftrook;
+    blackkingmoved = history[currentState-1].blackkingmoved;
+    blackrightrook = history[currentState-1].blackrightrook;
+    blackleftrook = history[currentState-1].blackleftrook;
     
     return 1;
 }
@@ -420,6 +479,13 @@ int REDO(char board[8][8], char captureW[16], char captureB[16],
     *counterW = history[currentState].counterW;
     *counterB = history[currentState].counterB;
     *turn = history[currentState].turn;
+    whitekingmoved = history[currentState].whitekingmoved;
+    whiterightrook = history[currentState].whiterightrook;
+    whiteleftrook = history[currentState].whiteleftrook;
+    blackkingmoved = history[currentState].blackkingmoved;
+    blackrightrook = history[currentState].blackrightrook;
+    blackleftrook = history[currentState].blackleftrook;
+
 
     currentState++;
     return 1;
@@ -501,7 +567,70 @@ int isStaleMate(char B[8][8],char turn){
 
     return 1;
 }
+int whitecastle(char b[8][8],int r1,int c1,int r2,int c2){
+    if(whitekingmoved) return 0;
+    if(isCheck(b,0)) return 0;
+    char temp[8][8];
+    copyBoard(b,temp);
+    if(r2==7 && c2==6 && !whiterightrook && (b[7][5]== '.' || b[7][5]== '-') && (b[7][6]== '.' || b[7][6]== '-')){
+        temp[7][5]='k';
+        temp[7][4]='-';
+        if(isCheck(temp,0)) return 0;
+        temp[7][6]='k';
+        temp[7][5]='-';
+        if(isCheck(temp,0)) return 0;
+        whitekingmoved=1;
+        whiterightrook=1;
+        castlew=1;
+        return 1;
+    } 
+    if(r2==7 && c2==2 && !whiteleftrook && (b[7][3]== '.' || b[7][3]== '-' ) && (b[7][2]== '.' || b[7][2]== '-' )){
+        temp[7][3]='k';
+        temp[7][4]='-';
+        if(isCheck(temp,0)) return 0;
+        temp[7][2]='k';
+        temp[7][3]='-';
+        if(isCheck(temp,0)) return 0;
+        whitekingmoved=1;
+        whiteleftrook=1;
+        castlew=1;
+        return 1;
+    } 
+    return 0;
 
+}
+int blackcastle(char b[8][8],int r1,int c1,int r2,int c2){
+    if(blackkingmoved) return 0;
+    if(isCheck(b,1)) return 0;
+    char temp[8][8];
+    copyBoard(b,temp);
+    if(r2==0 && c2==6 && !blackrightrook && (b[0][5]== '.' || b[0][5]== '-') && (b[0][6]== '.' || b[0][6]== '-')){
+        temp[0][5]='K';
+        temp[0][4]='-';
+        if(isCheck(temp,1)) return 0;
+        temp[0][6]='K';
+        temp[0][5]='-';
+        if(isCheck(temp,1)) return 0;
+        blackkingmoved=1;
+        blackrightrook=1;
+        castleb=1;
+        return 1;
+    } 
+    if(r2==0 && c2==2 && !blackleftrook && (b[0][3]== '.' || b[0][3]== '-' ) && (b[0][2]== '.' || b[0][2]== '-' )){
+        temp[0][3]='K';
+        temp[0][4]='-';
+        if(isCheck(temp,1)) return 0;
+        temp[0][2]='K';
+        temp[0][3]='-';
+        if(isCheck(temp,1)) return 0;
+        blackkingmoved=1;
+        blackleftrook=1;
+        castleb=1;
+        return 1;
+    } 
+    return 0;
+
+}
 int main(){
 
     int row1,col1,row2,col2,counterB=0,counterW=0,validprom,checkflag=0,checkmateflag=0,stalemateflag=0,undoFlag=0;
