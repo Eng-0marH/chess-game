@@ -13,9 +13,10 @@ typedef struct {
 } GameState;
 
 
-#define MAX_HISTORY 100
+#define MAX_HISTORY 150
 GameState history[MAX_HISTORY];
-int historyCount = -1;
+int historyCount = 0;
+int currentState = 0;
 
 
 void captured(char c[16]){
@@ -245,11 +246,13 @@ void readmove(int *r1,int *c1,int *r2,int *c2,char *prom, int *undoFlag){
             *undoFlag = 1;
             return;
         }
-        
-        *undoFlag = 0;
+        if(strcmp(line, "r") == 0 || strcmp(line, "R") == 0){
+            *undoFlag = 2; //1 for undo 2 for redo
+            return;
+        }
         int len=strlen(line);
         if(!(len==4 || len==5)){
-            printf("Invalid Input format, e.g. \"E2E4\" or type \"u\" to undo last move\n");
+            printf("Invalid Input format, e.g. \"E2E4\" or type \"u\" to undo, \"r\" to redo\n");
             continue;
         }
         if(!(toupper (line[0]) >='A' && toupper (line[0]) <='H' &&
@@ -370,38 +373,57 @@ void copyBoard(char src[8][8], char dst[8][8])
 
 void saveState(char board[8][8], char captureW[16], char captureB[16], 
                int counterW, int counterB, char turn) {
+    historyCount = currentState;
     if (historyCount >= MAX_HISTORY) {
         printf("History full! Cannot save more states.\n");
         return;
     }
-    historyCount++;
+
     copyBoard (board, history[historyCount].board);
     memcpy(history[historyCount].captureW, captureW, 16);
     memcpy(history[historyCount].captureB, captureB, 16);
     history[historyCount].counterW = counterW;
     history[historyCount].counterB = counterB;
     history[historyCount].turn = turn;
+    historyCount++;
+    currentState++;
 }
 
 
 int UNDO (char board[8][8], char captureW[16], char captureB[16], 
                  int *counterW, int *counterB, char *turn) {
-    if (historyCount == 0) {
+    if (currentState <= 1) {
         printf("No moves to undo!\n");
         return 0;
     }
     
-    historyCount--;
-    copyBoard(history[historyCount].board, board);
-    memcpy(captureW, history[historyCount].captureW, 16);
-    memcpy(captureB, history[historyCount].captureB, 16);
-    *counterW = history[historyCount].counterW;
-    *counterB = history[historyCount].counterB;
-    *turn = history[historyCount].turn;
+    currentState--;
+    copyBoard(history[currentState-1].board, board);
+    memcpy(captureW, history[currentState-1].captureW, 16);
+    memcpy(captureB, history[currentState-1].captureB, 16);
+    *counterW = history[currentState-1].counterW;
+    *counterB = history[currentState-1].counterB;
+    *turn = history[currentState-1].turn;
     
     return 1;
 }
+int REDO(char board[8][8], char captureW[16], char captureB[16], 
+         int *counterW, int *counterB, char *turn) {
+    if (currentState >= historyCount) {
+        printf("No moves to redo!\n");
+        return 0;
+    }
 
+    copyBoard(history[currentState].board, board);
+    memcpy(captureW, history[currentState].captureW, 16);
+    memcpy(captureB, history[currentState].captureB, 16);
+    *counterW = history[currentState].counterW;
+    *counterB = history[currentState].counterB;
+    *turn = history[currentState].turn;
+
+    currentState++;
+    return 1;
+}
 
 int isCheckMate(char B[8][8], char turn)
 {
@@ -511,16 +533,24 @@ int main(){
             validprom=0;
             readmove(&row1,&col1,&row2,&col2,&prom,&undoFlag);
             
-            if(undoFlag){
+            if(undoFlag == 1){
                 if(UNDO(board, captureW, captureB, &counterW, &counterB, &turn)){
-                    printf("Move undone!\n");
-                    checkflag = 0;
-                    checkmateflag = 0;
-                    stalemateflag = 0;
-                }
-                break;
-            }
+                showBoard(board,captureW,captureB);
+                printf("Move undone!\n");
+                printf("%s's Turn\n",turn==0?"White":"Black");}
 
+            }
+            if(undoFlag == 2){
+                if(REDO(board, captureW, captureB, &counterW, &counterB, &turn)){
+                showBoard(board,captureW,captureB);
+                printf("Move redone!\n");
+                printf("%s's Turn\n",turn==0?"White":"Black");}
+
+            }
+            if(undoFlag){
+                undoFlag = 0;
+                continue;
+            }
             if (!isValid(board,row1,col1,row2,col2,prom,turn,&validprom)) {
                 printf("Invalid move, Try again!\n");
                 continue;
@@ -539,11 +569,6 @@ int main(){
             break;
         }
 
-        if (undoFlag)
-        {
-            continue;
-        }
-        
         move(board,row1,col1,row2,col2,
              captureW,captureB,&counterW,&counterB,
              prom,turn,validprom);
