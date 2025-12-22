@@ -5,6 +5,7 @@
 
 #include "board.h"
 #include "valid.h"
+#include "draw.h"
 
 typedef struct {
     char board[8][8];
@@ -405,7 +406,7 @@ int blackcastle(char b[8][8],int r1,int c1,int r2,int c2){
 }
 int main(){
 
-    int row1,col1,row2,col2,counterB=0,counterW=0,validprom,checkflag=0,checkmateflag=0,stalemateflag=0,undoFlag=0;
+    int row1,col1,row2,col2,counterB=0,counterW=0,validprom,checkflag=0,checkmateflag=0,stalemateflag=0,undoFlag=0,materialFlag=0;
     char turn=0,prom,board[8][8],captureW[16]={},captureB[16]={};
 
     Board(board);
@@ -424,6 +425,12 @@ int main(){
                 printf("------GAME OVER------\nStalemate! Draw");
                 break;
         }
+         if(materialFlag){
+                printf("------GAME OVER------\nInsufficient material! Draw");
+                break;
+
+        }
+
         printf("%s's Turn\n",turn==0?"White":"Black");
         if(checkflag==1){
             printf("Check!\n");
@@ -483,7 +490,8 @@ int main(){
         }
         checkmateflag = isCheckMate(board, turn);
         stalemateflag = isStaleMate(board,turn);
+        materialFlag = isinsufficientmat(board);
     }
-    
+        
     return 0;
 }
