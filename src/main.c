@@ -24,6 +24,34 @@ typedef struct {
 
 } GameState;
 
+GameState game;
+
+void saveGame(GameState *game, const char *filename) {
+    FILE *f = fopen(filename, "wb");
+    if (!f) {
+        printf("Error saving game!\n");
+        return;
+    }
+
+    fwrite(game, sizeof(GameState), 1, f);
+    fclose(f);
+
+    printf("Game saved successfully!\n");
+}
+
+int loadGame(GameState *game, const char *filename) {
+    FILE *f = fopen(filename, "rb");
+    if (!f) {
+        printf("No saved game found!\n");
+        return 0;
+    }
+
+    fread(game, sizeof(GameState), 1, f);
+    fclose(f);
+
+    printf("Game loaded successfully!\n");
+    return 1;
+}
 
 #define MAX_HISTORY 200
 GameState history[MAX_HISTORY];
@@ -88,7 +116,7 @@ void move(char B[8][8], int row1, int column1, int row2, int column2,char w[16],
     }
 }
 
-void readmove(int *r1,int *c1,int *r2,int *c2,char *prom, int *undoFlag){
+void readmove(int *r1,int *c1,int *r2,int *c2,char *prom, int *undoFlag,int *saveFlag){
     while(1){
         char line[100];
         fgets(line,100,stdin);
@@ -101,6 +129,10 @@ void readmove(int *r1,int *c1,int *r2,int *c2,char *prom, int *undoFlag){
         }
         if(strcmp(line, "r") == 0 || strcmp(line, "R") == 0){
             *undoFlag = 2; //1 for undo 2 for redo
+            return;
+        }
+        if(strcmp(line, "s") == 0 || strcmp(line, "S") == 0){
+            *saveFlag = 1;
             return;
         }
         int len=strlen(line);
@@ -404,14 +436,64 @@ int blackcastle(char b[8][8],int r1,int c1,int r2,int c2){
     return 0;
 
 }
+void fillGameState(GameState *g,char board[8][8],char captureW[16], char captureB[16],int counterW, int counterB,char turn)
+{
+    copyBoard(board, g->board);
+    memcpy(g->captureW, captureW, 16);
+    memcpy(g->captureB, captureB, 16);
+    g->counterW = counterW;
+    g->counterB = counterB;
+    g->turn = turn;
+
+    g->whitekingmoved = whitekingmoved;
+    g->whiterightrook = whiterightrook;
+    g->whiteleftrook = whiteleftrook;
+    g->blackkingmoved = blackkingmoved;
+    g->blackrightrook = blackrightrook;
+    g->blackleftrook = blackleftrook;
+}
 int main(){
 
-    int row1,col1,row2,col2,counterB=0,counterW=0,validprom,checkflag=0,checkmateflag=0,stalemateflag=0,undoFlag=0,materialFlag=0;
+    int row1,col1,row2,col2,counterB=0,counterW=0,validprom,checkflag=0,checkmateflag=0,stalemateflag=0,undoFlag=0,materialFlag=0,saveFlag=0;
     char turn=0,prom,board[8][8],captureW[16]={},captureB[16]={};
-
-    Board(board);
-
+    int choice;
     
+    while(1) {
+    printf("1) New Game\n");
+    printf("2) Load Game\n");
+    printf("Choose: ");
+    if(scanf("%d",&choice)!= 1){
+        printf("Invalid input! Please enter 1 or 2.\n");
+        while(getchar() != '\n');
+        continue;
+    }
+
+    if (choice != 1 && choice != 2) {
+        printf("Invalid choice! Please enter 1 or 2.\n");
+        continue;
+    }
+    getchar();
+    break;
+}
+    if(choice == 2 && loadGame(&game, "save1.dat")){
+    copyBoard(game.board, board);
+    memcpy(captureW, game.captureW, 16);
+    memcpy(captureB, game.captureB, 16);
+    counterW = game.counterW;
+    counterB = game.counterB;
+    turn = game.turn;
+    whitekingmoved = game.whitekingmoved;
+    whiterightrook = game.whiterightrook;
+    whiteleftrook  = game.whiteleftrook;
+    blackkingmoved = game.blackkingmoved;
+    blackrightrook = game.blackrightrook;
+    blackleftrook  = game.blackleftrook;
+    } else {
+    Board(board);
+    turn = 0;
+}
+    historyCount = 0;
+    currentState = 0;
     saveState(board, captureW, captureB, counterW, counterB, turn);
 
     while(1){
@@ -439,7 +521,7 @@ int main(){
 
         while(1){
             validprom=0;
-            readmove(&row1,&col1,&row2,&col2,&prom,&undoFlag);
+            readmove(&row1,&col1,&row2,&col2,&prom,&undoFlag,&saveFlag);
             
             if(undoFlag == 1){
                 if(UNDO(board, captureW, captureB, &counterW, &counterB, &turn)){
@@ -459,6 +541,13 @@ int main(){
                 undoFlag = 0;
                 continue;
             }
+            if (saveFlag) {
+                fillGameState(&game, board, captureW, captureB,counterW, counterB, turn);
+                saveGame(&game, "save1.dat");
+                saveFlag=0;
+                continue;
+            }
+
             if (!isValid(board,row1,col1,row2,col2,prom,turn,&validprom)) {
                 printf("Invalid move, Try again!\n");
                 continue;
