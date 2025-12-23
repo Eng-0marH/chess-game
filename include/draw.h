@@ -60,6 +60,7 @@ countboard count_pieces(char b[8][8]){
                 break;
             case 'Q':
                 c.count_Q++;
+                break;
             case 'P':
                 c.count_P++;
                 break;
