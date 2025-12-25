@@ -2,7 +2,6 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include "board.h"
 #include "valid.h"
 #include "draw.h"
@@ -372,7 +371,7 @@ int isStaleMate(char B[8][8],char turn){
 
     return 1;
 }
-int whitecastle(char b[8][8],int r1,int c1,int r2,int c2){
+int whitecastle(char b[8][8],int r2,int c2){
     if(whitekingmoved) return 0;
     if(isCheck(b,0)) return 0;
     char temp[8][8];
@@ -404,7 +403,7 @@ int whitecastle(char b[8][8],int r1,int c1,int r2,int c2){
     return 0;
 
 }
-int blackcastle(char b[8][8],int r1,int c1,int r2,int c2){
+int blackcastle(char b[8][8],int r2,int c2){
     if(blackkingmoved) return 0;
     if(isCheck(b,1)) return 0;
     char temp[8][8];
